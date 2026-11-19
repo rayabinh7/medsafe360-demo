@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0c243b">
+  <title>MedSafe 360 | Student Demonstration</title>
+  <style>
+    :root{color-scheme:light;--navy:#0b2339;--teal:#0b9d95;--line:#dae5ed;--text:#183247;--muted:#647b8c;--bg:#f2f7fa;--warn:#fff3d8}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}header{background:var(--navy);color:#fff;padding:18px 22px}.top,main{max-width:1080px;margin:auto}.brand{font-size:23px;font-weight:800}.sub{color:#b8cdd9;font-size:13px}main{padding:24px 16px 48px}.notice{border:1px solid #e5c87b;background:var(--warn);border-radius:13px;padding:14px 17px;font-size:14px}.hero{margin:24px 0}.hero h1{font-size:clamp(25px,4vw,36px);margin:0}.muted{color:var(--muted)}.layout{display:grid;grid-template-columns:300px 1fr;gap:18px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}.search,input{font:inherit;border:1px solid #b9cbd7;border-radius:10px;padding:11px;width:100%}.list{max-height:65vh;overflow:auto;margin-top:12px}.med{display:block;width:100%;text-align:left;background:#fff;border:0;border-bottom:1px solid #edf1f4;padding:12px;cursor:pointer}.med:hover,.med.active{background:#e7f6f5}.med strong,.med small{display:block}.med small,.id,.foot{color:var(--muted)}.pill{display:inline-block;background:#e5f3f4;color:#09645e;border-radius:30px;padding:4px 10px;font-size:13px}.title{font-size:28px;margin:12px 0 0}.warning{background:#fff0ec;border:1px solid #f2c4b9;border-radius:10px;padding:14px;margin-top:18px}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.btn{border:0;border-radius:10px;padding:10px 14px;background:var(--teal);color:white;font-weight:700;cursor:pointer}.btn.secondary{background:#e8f1f5;color:#144762}video{display:block;width:100%;max-height:260px;background:#061724;border-radius:10px;margin-top:12px}.hidden{display:none!important}.footer{text-align:center;color:var(--muted);font-size:13px;margin:24px 0}
+    @media(max-width:720px){.layout{grid-template-columns:1fr}.list{max-height:260px}}
+  </style>
+</head>
+<body>
+  <header><div class="top"><div class="brand">✚ MedSafe 360</div><div class="sub">Medication verification • Student demonstration</div></div></header>
+  <main>
+    <div class="notice"><strong>Not for patient care.</strong> This public student demonstration uses fictional placeholder content. It is not a clinical reference and must never be used to select, prepare, calculate, or administer medication.</div>
+    <div class="hero"><h1>Medication safety, one scan at a time.</h1><div class="muted">Browse 42 medication-name placeholders or open a profile from its QR code.</div></div>
+    <div class="layout">
+      <aside class="card"><input id="search" class="search" placeholder="Search medication or profile ID" aria-label="Search medications"><p class="muted" id="count"></p><div class="actions"><button class="btn" id="scan">📷 Scan QR</button><button class="btn secondary" id="stop">Stop camera</button></div><video id="camera" class="hidden" autoplay muted playsinline></video><p class="muted" id="status" aria-live="polite"></p><div id="list" class="list"></div></aside>
+      <section class="card"><span class="pill">Educational prototype</span><h2 class="title" id="name"></h2><div class="id" id="id"></div><div class="warning"><strong>Placeholder profile only.</strong> No clinical dosing, indications, contraindications, or preparation guidance is provided. Consult your organisation’s current authorised reference and protocols for clinical care.</div><p class="foot">This static demonstration stores no patient data. A profile link uses the URL fragment (for example, <code>#ADCD-MED-0001</code>) to open the corresponding name.</p><button class="btn secondary" id="copy">Copy profile link</button></section>
+    </div>
+    <div class="footer">MedSafe 360 • EMS student innovation concept • Fictional demonstration only • No patient data stored</div>
+  </main>
+<script>
+const $=id=>document.getElementById(id);let meds=[],current=null,stream=null,detector=null,timer=null;
+function match(value){const text=String(value||'').trim();const id=text.match(/ADCD-MED-\d{4}/i);return meds.find(m=>m.id.toUpperCase()===(id?id[0].toUpperCase():text.toUpperCase())||m.name.toUpperCase()===text.toUpperCase())}
+function choose(m){if(!m)return;current=m;history.replaceState(null,'',location.pathname+location.search+'#'+m.id);render()}
+function render(){if(!current)return;$('name').textContent=current.name;$('id').textContent=current.id;const query=$('search').value.toLowerCase().trim();const found=meds.filter(m=>(m.name+' '+m.id).toLowerCase().includes(query));$('count').textContent=`${found.length} of ${meds.length} profiles`;$('list').innerHTML=found.map(m=>`<button class="med ${m.id===current.id?'active':''}" data-id="${m.id}"><strong>${m.name}</strong><small>${m.id}</small></button>`).join('');$('list').querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>choose(match(b.dataset.id)))}
+function stopCamera(){if(timer){clearInterval(timer);timer=null}if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$('camera').srcObject=null;$('camera').classList.add('hidden')}
+$('search').addEventListener('input',render);$('stop').onclick=stopCamera;$('copy').onclick=async()=>{const url=location.href.split('#')[0]+'#'+current.id;try{await navigator.clipboard.writeText(url);$('status').textContent='Profile link copied.'}catch(e){prompt('Copy this link',url)}};
+$('scan').onclick=async()=>{if(!('BarcodeDetector'in window)){ $('status').textContent='QR scanning is not supported by this browser. Scan the printed QR code with your phone camera or select a profile from the list.';return}if(!navigator.mediaDevices?.getUserMedia){$('status').textContent='Camera access requires HTTPS or localhost.';return}try{detector=new BarcodeDetector({formats:['qr_code']});stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});$('camera').srcObject=stream;$('camera').classList.remove('hidden');await $('camera').play();$('status').textContent='Point the camera at a MedSafe 360 QR label.';timer=setInterval(async()=>{try{for(const code of await detector.detect($('camera'))){const med=match(code.rawValue);if(med){choose(med);$('status').textContent='Opened '+med.name;stopCamera();break}}}catch(e){}},500)}catch(e){$('status').textContent='Camera unavailable: '+e.message;stopCamera()}};
+window.addEventListener('hashchange',()=>{const m=match(location.hash);if(m){current=m;render()}});
+fetch('./medication_index.json').then(r=>{if(!r.ok)throw Error('Could not load medication list');return r.json()}).then(data=>{meds=data;current=match(location.hash)||meds[0];render()}).catch(e=>{$('status').textContent=e.message});
+</script>
+</body>
+</html>
